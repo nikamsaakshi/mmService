@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using mmService.Entities;
 using System.Net;
+using System.Runtime.InteropServices;
 
 namespace mmService.Controllers
 {
@@ -53,7 +54,6 @@ namespace mmService.Controllers
             return Ok(new { token = "registered", email = candidate.emailId, candidateId = candidate.id });
         }
 
-
         #endregion
 
         #region Candidate Profile
@@ -70,120 +70,85 @@ namespace mmService.Controllers
         [HttpPost("saveCandidateProfile")]
         public HttpStatusCode saveCandidateProfile([FromForm] CandidateProfile candidate)
         {
-            //add logic for update also - check if already exists
-
-            _dbContext.Add(candidate);
-            var result = _dbContext.SaveChanges();
-
-            if (result <= 0)
+            CandidateProfile candidateProfile = new CandidateProfile();
+            if (candidate != null && candidate.candidateId > 0)
             {
-                return HttpStatusCode.BadRequest;
+                candidateProfile = _dbContext.CandidateProfile.Where(p => p.candidateId == candidate.candidateId).FirstOrDefault();
             }
 
-            if (candidate.image == null && candidate.doc == null && result > 0)
+            if (candidateProfile != null && candidate != null && candidate.candidateId > 0)
             {
+                var result = Put(candidate.candidateId, candidate);
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                _dbContext.Add(candidate);
+                var result = _dbContext.SaveChanges();
+
+                if (result <= 0)
+                {
+                    return HttpStatusCode.BadRequest;
+                }
+
+                if (candidate.image == null && candidate.doc == null && result > 0)
+                {
+                    return HttpStatusCode.Created;
+                }
+
+                if (candidate.image != null)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var image = candidate.image;
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        image.CopyToAsync(stream);
+                    }
+
+                    CandidatePhotos candidatePhoto = new CandidatePhotos();
+                    candidatePhoto.photoPath = filePath;
+                    candidatePhoto.candidateId = candidate.candidateId;
+                    candidatePhoto.uploadedAt = DateTime.Now;
+
+                    _dbContext.CandidatePhotos.Add(candidatePhoto);
+                    _dbContext.SaveChanges();
+                }
+
+                if (candidate.doc != null)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "docs");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var doc = candidate.doc;
+                    var uniqueFileNameDoc = Guid.NewGuid().ToString() + Path.GetExtension(doc.FileName);
+                    var filePathDoc = Path.Combine(uploadsFolder, uniqueFileNameDoc);
+
+                    using (var stream = new FileStream(filePathDoc, FileMode.Create))
+                    {
+                        doc.CopyToAsync(stream);
+                    }
+
+                    CandidatePhotos candidatePhotoDoc = new CandidatePhotos();
+                    candidatePhotoDoc.photoPath = filePathDoc;
+                    candidatePhotoDoc.candidateId = candidate.candidateId;
+                    candidatePhotoDoc.uploadedAt = DateTime.Now;
+
+                    _dbContext.CandidatePhotos.Add(candidatePhotoDoc);
+                    _dbContext.SaveChanges();
+                }
                 return HttpStatusCode.Created;
             }
-
-            if (candidate.image != null)
-            {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                var image = candidate.image;
-                var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    image.CopyToAsync(stream);
-                }
-
-                CandidatePhotos candidatePhoto = new CandidatePhotos();
-                candidatePhoto.photoPath = filePath;
-                candidatePhoto.candidateId = candidate.candidateId;
-                candidatePhoto.uploadedAt = DateTime.Now;
-
-                _dbContext.CandidatePhotos.Add(candidatePhoto);
-                _dbContext.SaveChanges();
-            }
-
-            if (candidate.doc != null)
-            {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "docs");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-
-                var doc = candidate.doc;
-                var uniqueFileNameDoc = Guid.NewGuid().ToString() + Path.GetExtension(doc.FileName);
-                var filePathDoc = Path.Combine(uploadsFolder, uniqueFileNameDoc);
-
-                using (var stream = new FileStream(filePathDoc, FileMode.Create))
-                {
-                    doc.CopyToAsync(stream);
-                }
-
-                CandidatePhotos candidatePhotoDoc = new CandidatePhotos();
-                candidatePhotoDoc.photoPath = filePathDoc;
-                candidatePhotoDoc.candidateId = candidate.candidateId;
-                candidatePhotoDoc.uploadedAt = DateTime.Now;
-
-                _dbContext.CandidatePhotos.Add(candidatePhotoDoc);
-                _dbContext.SaveChanges();
-            }
-            return HttpStatusCode.Created;
-        }
-
-        [HttpPost("saveCandidateProfile1")]
-        public ActionResult saveCandidateProfile1([FromForm] CandidateProfileVM1 candidate)
-        {
-
-            string uniqueFileName = null;
-            string uniqueFileName1 = null;
-            if (candidate.doc != null && candidate.doc.Length > 0)
-            {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-                uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(candidate.image.FileName);
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    candidate.doc.CopyToAsync(stream);
-                }
-            }
-            if (candidate.image != null && candidate.image.Length > 0)
-            {
-                var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "uploads");
-                if (!Directory.Exists(uploadsFolder))
-                {
-                    Directory.CreateDirectory(uploadsFolder);
-                }
-                uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(candidate.doc.FileName);
-                var filePath = Path.Combine(uploadsFolder, uniqueFileName);
-                using (var stream = new FileStream(filePath, FileMode.Create))
-                {
-                    candidate.doc.CopyToAsync(stream);
-                }
-            }
-            // Save the candidate data along with image path (here we simply return them for demonstration)
-            var response = new
-            {
-                ImagePath = uniqueFileName != null ? $"/uploads/{uniqueFileName}" : null,
-                ImagePath1 = uniqueFileName != null ? $"/uploads/{uniqueFileName1}" : null,
-                Message = "Candidate registered successfully."
-            };
-
-            // In real scenario, save the data in a database
-
-            return Ok(response);
         }
 
         [HttpGet("getCandidatesBySearchCriteria")]
@@ -232,53 +197,72 @@ namespace mmService.Controllers
         [HttpGet("getMatchingProfilesByGender/{gender}")]
         public IEnumerable<CandidateProfileWithPhotos> getMatchingProfilesByGender(string gender)
         {
-            var matchingProfile = (from p in _dbContext.CandidateProfile
-                                   join cp in _dbContext.CandidatePhotos
-                                   on p.candidateId equals cp.candidateId
-                                   where p.gender.ToLower() == gender.ToLower()
-                                   select new CandidateProfileWithPhotos
-                                   {
-                                       firstName = p.firstName,
-                                       lastName = p.lastName,
-                                       photoPath = cp.photoPath,
-                                       candidateId = cp.candidateId
-                                   }).ToList();
+            var matchingProfiles = _dbContext.CandidateProfile
+           .Where(p => p.gender.ToLower() == gender.ToLower())
+           .GroupJoin(
+               _dbContext.CandidatePhotos,
+               p => p.candidateId,
+               cp => cp.candidateId,
+               (p, photos) => new
+               {
+                   CandidateProfile = p,
+                   CandidatePhoto = photos.OrderBy(x => x.uploadedAt).FirstOrDefault()
+               }
+           ).ToList();
 
-            //return matchingProfile;
-
-            var matchingProfile1 = _dbContext.CandidateProfile
-                                    .Where(p => p.gender.ToLower() == gender.ToLower())
-                                    .Join(_dbContext.CandidatePhotos,
-                                        p => p.candidateId,
-                                        cp => cp.candidateId,
-                                        (p, cp) => new
-                                        {
-                                            CandidateProfile = p,
-                                            CandidatePhoto = cp
-                                        })
-                                    .Distinct()
-                                    .ToList();
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var filePath = $"{baseUrl}/images/";
 
             List<CandidateProfileWithPhotos> lstResult = new List<CandidateProfileWithPhotos>();
-            foreach (var item in matchingProfile1)
+            foreach (var item in matchingProfiles)
             {
+                var newFileName = Path.GetFileName(item.CandidatePhoto.photoPath);
 
                 lstResult.Add(
                     new CandidateProfileWithPhotos
                     {
                         candidateId = item.CandidateProfile.candidateId,
-                        firstName = item.CandidateProfile.firstName,
-                        lastName = item.CandidateProfile.lastName,
-                        photoPath = item.CandidatePhoto.photoPath
+                        firstName = item.CandidateProfile.firstName.Substring(0, 2) + "####",
+                        lastName = item.CandidateProfile.lastName.Substring(0, 2) + "####",
+                        photoPath = filePath + newFileName,
+                        dob = item.CandidateProfile.DOB.ToLongDateString(),
+                        villageOrCity = item.CandidateProfile.villageOrCity.Substring(0, 2) + "####",
+                        district = item.CandidateProfile.district.Substring(0, 2) + "####",
+                        maskedContactNumber = "#######" + (new Random()).Next(100, 1000).ToString(),
+                        age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString()
                     });
             }
-
             return lstResult;
         }
 
+
+        [HttpGet("getImages")]
+        public IActionResult GetImages()
+        {
+            var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+
+            if (!Directory.Exists(uploadsFolder))
+            {
+                return Ok(Enumerable.Empty<object>());
+            }
+
+            var baseUrl = $"{Request.Scheme}://{Request.Host}";
+            var files = Directory.GetFiles(uploadsFolder)
+                .Select(Path.GetFileName)
+                .Select(fileName => new
+                {
+                    fileName,
+                    filePath = $"{baseUrl}/images/{fileName}"
+                })
+                .ToList();
+
+            return Ok(files);
+        }
+
+
         // PUT api/<CandidateController>/5
         [HttpPut("{candidateId}")]
-        public ActionResult Put(int candidateId, [FromBody] CandidateProfile updatedCandidate)
+        public ActionResult Put(int candidateId, CandidateProfile updatedCandidate)
         {
             if (updatedCandidate == null)
             {
