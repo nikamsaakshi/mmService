@@ -8,7 +8,7 @@
 
         public string password { get; set; }
 
-        public string aadhaarNumber{ get; set; }
+        public string aadhaarNumber { get; set; }
 
         public string mobileNumber { get; set; }
     }

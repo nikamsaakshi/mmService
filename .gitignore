@@ -8,3 +8,4 @@
 /.config
 /bin/Release/net8.0
 /Properties/PublishProfiles
+/mmService.sln

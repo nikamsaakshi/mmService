@@ -30,15 +30,15 @@ namespace mmService.Entities
         {
             modelBuilder.Entity<CandidatePhotos>(entity =>
             {
-                entity.ToTable("candidatephotos").HasKey("photoId");
+                entity.ToTable("candidatephotos").HasKey("id");
 
-                entity.Property(e => e.photoId);
+                entity.Property(e => e.id);
 
                 entity.Property(e => e.candidateId)
                     .IsRequired()
                     .IsUnicode(false);
 
-                entity.Property(e => e.photo)
+                entity.Property(e => e.photoPath)
                     .IsRequired()
                     .IsUnicode(false);
 
@@ -105,16 +105,16 @@ namespace mmService.Entities
                     .HasMaxLength(6)
                     .IsUnicode(false);
 
-                entity.Property(e => e.contactNo)
-                    .IsRequired()
-                    .HasMaxLength(10)
-                    .IsUnicode(false);
+                //entity.Property(e => e.contactNo)
+                //    .IsRequired()
+                //    .HasMaxLength(10)
+                //    .IsUnicode(false);
 
 
-                entity.Property(e => e.emailId)
-                    .IsRequired()
-                    .HasMaxLength(100)
-                    .IsUnicode(false);
+                //entity.Property(e => e.emailId)
+                //    .IsRequired()
+                //    .HasMaxLength(100)
+                //    .IsUnicode(false);
 
                 entity.Property(e => e.addressLine1)
 
@@ -175,10 +175,11 @@ namespace mmService.Entities
 
                    .IsUnicode(false);
 
-
-
-
             });
+
+            //ADK
+            modelBuilder.Entity<CandidateProfile>().Ignore(p => p.doc);
+            modelBuilder.Entity<CandidateProfile>().Ignore(p => p.image);
 
             OnModelCreatingPartial(modelBuilder);
         }
