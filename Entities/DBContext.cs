@@ -72,6 +72,10 @@ namespace mmService.Entities
                     .IsRequired()
                     .HasMaxLength(10)
                     .IsUnicode(false);
+
+                entity.Property(e => e.isPremium)
+                .IsRequired()
+                .IsUnicode(false);
             });
 
 

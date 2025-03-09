@@ -11,5 +11,7 @@
         public string aadhaarNumber { get; set; }
 
         public string mobileNumber { get; set; }
+
+        public byte isPremium { get; set; }
     }
 }

@@ -39,7 +39,7 @@ namespace mmService.Controllers
                 return Unauthorized(new { message = "Invalid email or password" });
             }
 
-            return Ok(new { token = "loggedin", email = candidate.emailId, candidateId = candidate.id });
+            return Ok(new { token = "loggedin", email = candidate.emailId, candidateId = candidate.id, isPremium = candidate.isPremium });
         }
 
         #endregion
@@ -52,6 +52,15 @@ namespace mmService.Controllers
             _dbContext.Add(candidate);
             var result = _dbContext.SaveChanges();
             return Ok(new { token = "registered", email = candidate.emailId, candidateId = candidate.id });
+        }
+
+        [HttpPost("updatePremium/{candidateId}")]
+        public IActionResult updatePremium(int candidateId)
+        {
+            var candidate = _dbContext?.Candidate.Where(p => p.id == candidateId).SingleOrDefault();
+            candidate.isPremium = 1;
+            _dbContext.SaveChanges();
+            return Ok("Candidate premium activated successfully!");
         }
 
         #endregion
