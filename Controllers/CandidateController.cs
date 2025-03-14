@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using mmService.Entities;
 using System.Net;
@@ -54,6 +55,14 @@ namespace mmService.Controllers
             return Ok(new { token = "registered", email = candidate.emailId, candidateId = candidate.id });
         }
 
+        [HttpPost("saveCandidateInterest")]
+        public IActionResult saveCandidateInterest(CandidateInterest candidateInterest)
+        {
+            _dbContext.Add(candidateInterest);
+            var result = _dbContext.SaveChanges();
+            return Ok("Candidate intrest send successfully!");
+        }
+
         [HttpPost("updatePremium/{candidateId}")]
         public IActionResult updatePremium(int candidateId)
         {
@@ -67,10 +76,32 @@ namespace mmService.Controllers
 
         #region Candidate Profile
 
+        [HttpGet("isProfileExists/{candidateId}")]
+        public CandidateProfile isProfileExists(int candidateId)
+        {
+            return _dbContext?.CandidateProfile.Where(p => p.candidateId == candidateId).FirstOrDefault();
+        }
+
+
         [HttpGet("getCandidateProfileByCandidateId/{candidateId}")]
         public CandidateProfile getCandidateProfileByCandidateId(int candidateId)
         {
             var candidate = _dbContext?.CandidateProfile.Where(p => p.candidateId == candidateId).SingleOrDefault();
+
+
+            //new CandidateProfileWithPhotos
+            //{
+            //    candidateId = item.CandidateProfile.candidateId,
+            //    firstName = item.CandidateProfile.firstName.Substring(0, 2) + "####",
+            //    lastName = item.CandidateProfile.lastName.Substring(0, 2) + "####",
+            //    photoPath = filePath + newFileName,
+            //    dob = item.CandidateProfile.DOB.ToLongDateString(),
+            //    villageOrCity = item.CandidateProfile.villageOrCity.Substring(0, 2) + "####",
+            //    district = item.CandidateProfile.district.Substring(0, 2) + "####",
+            //    maskedContactNumber = "#######" + (new Random()).Next(100, 1000).ToString(),
+            //    age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString()
+            //});
+
             if (candidate != null)
                 return candidate;
             return new CandidateProfile();
@@ -192,7 +223,7 @@ namespace mmService.Controllers
 
             if (searchCriteria.height != 0)
             {
-                lstCandidates = lstCandidates.Where(p => p.weight >= searchCriteria.height);
+                lstCandidates = lstCandidates.Where(p => p.height >= searchCriteria.height);
             }
 
             if (String.IsNullOrEmpty(searchCriteria.complexion))
@@ -206,7 +237,13 @@ namespace mmService.Controllers
         [HttpGet("getMatchingProfilesByGender/{gender}")]
         public IEnumerable<CandidateProfileWithPhotos> getMatchingProfilesByGender(string gender)
         {
-            var matchingProfiles = _dbContext.CandidateProfile
+            List<CandidateProfileWithPhotos> lstResult = new List<CandidateProfileWithPhotos>();
+
+            gender = gender.ToLower() == "male" ? "female" : "male";
+
+            try
+            {
+                var matchingProfiles = _dbContext.CandidateProfile
            .Where(p => p.gender.ToLower() == gender.ToLower())
            .GroupJoin(
                _dbContext.CandidatePhotos,
@@ -219,15 +256,71 @@ namespace mmService.Controllers
                }
            ).ToList();
 
-            var baseUrl = $"{Request.Scheme}://{Request.Host}";
-            var filePath = $"{baseUrl}/images/";
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var filePath = $"{baseUrl}/images/";
 
-            List<CandidateProfileWithPhotos> lstResult = new List<CandidateProfileWithPhotos>();
-            foreach (var item in matchingProfiles)
+                foreach (var item in matchingProfiles)
+                {
+                    var newFileName = Path.GetFileName(item.CandidatePhoto.photoPath);
+
+                    lstResult.Add(
+                        new CandidateProfileWithPhotos
+                        {
+                            candidateId = item.CandidateProfile.candidateId,
+                            firstName = item.CandidateProfile.firstName.Substring(0, 2) + "####",
+                            lastName = item.CandidateProfile.lastName.Substring(0, 2) + "####",
+                            photoPath = filePath + newFileName,
+                            dob = item.CandidateProfile.DOB.ToLongDateString(),
+                            villageOrCity = item.CandidateProfile.villageOrCity.Substring(0, 2) + "####",
+                            district = item.CandidateProfile.district.Substring(0, 2) + "####",
+                            maskedContactNumber = "#######" + (new Random()).Next(100, 1000).ToString(),
+                            age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString()
+                        });
+                }
+            }
+            catch (Exception ex)
             {
-                var newFileName = Path.GetFileName(item.CandidatePhoto.photoPath);
 
-                lstResult.Add(
+                throw;
+            }
+
+            return lstResult;
+        }
+
+        [HttpGet("getSentInterestMatchingProfilesByCandidateId/{candidateId}")]
+        public IEnumerable<CandidateProfileWithPhotos> getSentInterestMatchingProfilesByCandidateId(int candidateId)
+        {
+            List<CandidateProfileWithPhotos> lstResult = new List<CandidateProfileWithPhotos>();
+
+            try
+            {
+                var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.candidateId == candidateId).Select(p => p.interestedCandidateId).ToList();
+                //var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.candidateId == candidateId).Select(p => p.candidateId).ToList();
+
+                var matchingProfiles = _dbContext.CandidateProfile
+               .Where(p => lstInterestSentCandidates.Contains(p.candidateId))
+               .GroupJoin(
+                   _dbContext.CandidatePhotos,
+                   p => p.candidateId,
+                   cp => cp.candidateId,
+                   (p, photos) => new
+                   {
+                       CandidateProfile = p,
+                       CandidatePhoto = photos.OrderBy(x => x.uploadedAt).FirstOrDefault()
+                   }
+                ).ToList();
+
+                var lstIntCandidatesByIntCandidateIds = _dbContext.CandidateInterest.Where(p => lstInterestSentCandidates.Contains(p.candidateId)).ToList();
+
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var filePath = $"{baseUrl}/images/";
+
+                foreach (var item in matchingProfiles)
+                {
+                    var newFileName = Path.GetFileName(item.CandidatePhoto.photoPath);
+                    //var data = lstIntCandidatesByIntCandidateIds?.FirstOrDefault(p => p.interestedCandidateId == item.CandidateProfile.candidateId);
+                    var data = _dbContext?.CandidateInterest.Where(p => p.interestedCandidateId == item.CandidateProfile.candidateId && p.candidateId == candidateId).FirstOrDefault();
+                    lstResult.Add(
                     new CandidateProfileWithPhotos
                     {
                         candidateId = item.CandidateProfile.candidateId,
@@ -238,12 +331,20 @@ namespace mmService.Controllers
                         villageOrCity = item.CandidateProfile.villageOrCity.Substring(0, 2) + "####",
                         district = item.CandidateProfile.district.Substring(0, 2) + "####",
                         maskedContactNumber = "#######" + (new Random()).Next(100, 1000).ToString(),
-                        age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString()
+                        age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString(),
+                        isAccepted = (byte)(data != null ? data.isAccepted : 0)
+                        //isAccepted = (byte)(lstIntCandidatesByIntCandidateIds?.FirstOrDefault(p => p.interestedCandidateId == item.CandidateProfile.candidateId)?.isAccepted ?? 0)
                     });
+                }
             }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+
             return lstResult;
         }
-
 
         [HttpGet("getImages")]
         public IActionResult GetImages()
@@ -267,7 +368,6 @@ namespace mmService.Controllers
 
             return Ok(files);
         }
-
 
         // PUT api/<CandidateController>/5
         [HttpPut("{candidateId}")]
@@ -301,8 +401,21 @@ namespace mmService.Controllers
             existingCandidate.religion = !string.IsNullOrWhiteSpace(updatedCandidate.religion) ? updatedCandidate.religion : existingCandidate.religion;
             existingCandidate.cast = !string.IsNullOrWhiteSpace(updatedCandidate.cast) ? updatedCandidate.cast : existingCandidate.cast;
             existingCandidate.subCast = !string.IsNullOrWhiteSpace(updatedCandidate.subCast) ? updatedCandidate.subCast : existingCandidate.subCast;
-
-
+            existingCandidate.familyDeity = !string.IsNullOrWhiteSpace(updatedCandidate.familyDeity) ? updatedCandidate.familyDeity : existingCandidate.familyDeity;
+            existingCandidate.deityRepresentation = !string.IsNullOrWhiteSpace(updatedCandidate.deityRepresentation) ? updatedCandidate.deityRepresentation : existingCandidate.deityRepresentation;
+            existingCandidate.constellation = !string.IsNullOrWhiteSpace(updatedCandidate.constellation) ? updatedCandidate.constellation : existingCandidate.constellation;
+            existingCandidate.zodiacSign = !string.IsNullOrWhiteSpace(updatedCandidate.zodiacSign) ? updatedCandidate.zodiacSign : existingCandidate.zodiacSign;
+            existingCandidate.category = !string.IsNullOrWhiteSpace(updatedCandidate.category) ? updatedCandidate.category : existingCandidate.category;
+            existingCandidate.pulse = !string.IsNullOrWhiteSpace(updatedCandidate.pulse) ? updatedCandidate.pulse : existingCandidate.pulse;
+            existingCandidate.height = updatedCandidate.height;
+            existingCandidate.weight = updatedCandidate.weight;
+            existingCandidate.complexion = !string.IsNullOrWhiteSpace(updatedCandidate.complexion) ? updatedCandidate.complexion : existingCandidate.complexion;
+            existingCandidate.bloodGRoup = !string.IsNullOrWhiteSpace(updatedCandidate.bloodGRoup) ? updatedCandidate.bloodGRoup : existingCandidate.bloodGRoup;
+            existingCandidate.education = !string.IsNullOrWhiteSpace(updatedCandidate.education) ? updatedCandidate.education : existingCandidate.education;
+            existingCandidate.profession = !string.IsNullOrWhiteSpace(updatedCandidate.profession) ? updatedCandidate.profession : existingCandidate.profession;
+            existingCandidate.annualIncome = !string.IsNullOrWhiteSpace(updatedCandidate.annualIncome) ? updatedCandidate.annualIncome : existingCandidate.annualIncome;
+            existingCandidate.property = !string.IsNullOrWhiteSpace(updatedCandidate.property) ? updatedCandidate.property : existingCandidate.property;
+            existingCandidate.familyBackground = !string.IsNullOrWhiteSpace(updatedCandidate.familyBackground) ? updatedCandidate.familyBackground : existingCandidate.familyBackground;
             try
             {
                 _dbContext.SaveChangesAsync();

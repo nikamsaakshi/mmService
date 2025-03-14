@@ -21,6 +21,8 @@ namespace mmService.Entities
         public virtual DbSet<Candidate> Candidate { get; set; }
         public virtual DbSet<CandidatePhotos> CandidatePhotos { get; set; }
 
+        public virtual DbSet<CandidateInterest> CandidateInterest { get; set; } 
+
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
 
@@ -28,6 +30,25 @@ namespace mmService.Entities
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
+            modelBuilder.Entity<CandidateInterest>(entity =>
+                {
+                    entity.ToTable("candidateinterest").HasKey("id");
+
+                    entity.Property(e => e.id);
+                    entity.Property(e => e.candidateId)
+                        .IsRequired()
+                        .IsUnicode(false);
+
+                    entity.Property(e => e.interestedCandidateId)
+                        .IsUnicode(false);
+
+                    entity.Property(e => e.isAccepted)
+                        .IsUnicode(false);
+
+                    entity.Property(e => e.isRejected)
+                        .IsUnicode(false);
+                });
+
             modelBuilder.Entity<CandidatePhotos>(entity =>
             {
                 entity.ToTable("candidatephotos").HasKey("id");
@@ -109,17 +130,6 @@ namespace mmService.Entities
                     .HasMaxLength(6)
                     .IsUnicode(false);
 
-                //entity.Property(e => e.contactNo)
-                //    .IsRequired()
-                //    .HasMaxLength(10)
-                //    .IsUnicode(false);
-
-
-                //entity.Property(e => e.emailId)
-                //    .IsRequired()
-                //    .HasMaxLength(100)
-                //    .IsUnicode(false);
-
                 entity.Property(e => e.addressLine1)
 
                    .HasMaxLength(100)
@@ -167,6 +177,33 @@ namespace mmService.Entities
                    .HasMaxLength(50)
                    .IsUnicode(false);
 
+
+                entity.Property(e => e.familyDeity)
+                   .HasMaxLength(50)
+                   .IsUnicode(false);
+
+                entity.Property(e => e.deityRepresentation)
+                   .HasMaxLength(50)
+                   .IsUnicode(false);
+
+                entity.Property(e => e.constellation)
+                   .HasMaxLength(50)
+                   .IsUnicode(false);
+
+                entity.Property(e => e.zodiacSign)
+                  .HasMaxLength(50)
+                  .IsUnicode(false);
+
+                entity.Property(e => e.category)
+                 .HasMaxLength(50)
+                 .IsUnicode(false);
+
+
+                entity.Property(e => e.pulse)
+                 .HasMaxLength(50)
+                 .IsUnicode(false);
+
+
                 entity.Property(e => e.height)
 
                    .IsUnicode(false);
@@ -178,6 +215,34 @@ namespace mmService.Entities
                 entity.Property(e => e.complexion)
 
                    .IsUnicode(false);
+
+                entity.Property(e => e.bloodGRoup)
+                   .IsUnicode(false);
+
+                entity.Property(e => e.education)
+                   
+                   .IsUnicode(false);
+
+                entity.Property(e => e.profession)
+                 .HasMaxLength(50)
+                 .IsUnicode(false);
+
+                entity.Property(e => e.annualIncome)
+               
+                   .HasMaxLength(50)
+                   .IsUnicode(false);
+
+                entity.Property(e => e.property)
+              
+                  .HasMaxLength(50)
+                  .IsUnicode(false);
+
+
+                entity.Property(e => e.familyBackground)
+
+                 
+                  .IsUnicode(false);
+
 
             });
 

@@ -1,7 +1,13 @@
-﻿namespace mmService.Entities
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace mmService.Entities
 {
+
+
+    
     public class CandidateProfile
     {
+        //public int id { get; set; }
         public int candidateId { get; set; }
 
         public string firstName { get; set; }
@@ -10,6 +16,7 @@
 
         public string middleName { get; set; }
 
+     
         public DateTime DOB { get; set; }
 
         public string gender { get; set; }
@@ -36,11 +43,35 @@
 
         public string subCast { get; set; }
 
+        public string? familyDeity { get; set; }
+
+        public string? deityRepresentation { get; set; }
+
+        public string? constellation { get; set; }
+
+        public string? zodiacSign { get; set; }
+
+        public string? category { get; set; }
+
+        public string? pulse { get; set; }
+
         public decimal height { get; set; }
 
         public decimal weight { get; set; }
 
-        public string complexion { get; set; }
+        public string? complexion { get; set; }
+
+        public string? bloodGRoup { get; set; }
+
+        public string? education { get; set; }
+
+        public string? profession { get; set; }
+
+        public string? annualIncome { get; set; }
+
+        public string? property { get; set; }
+
+        public string? familyBackground { get; set; }
 
         public IFormFile? image { get; set; }
 
@@ -84,11 +115,35 @@
 
         public string subCast { get; set; }
 
+        public string familyDeity { get; set; }
+
+        public string deityRepresentation { get; set; }
+
+        public string constellation{ get; set; }
+
+        public string zodiacSign { get; set; }
+
+        public string category { get; set; }
+
+        public string pulse{ get; set; }
+
         public decimal height { get; set; }
 
         public decimal weight { get; set; }
 
         public string complexion { get; set; }
+
+        public string bloodGRoup { get; set; }
+
+        public string education{ get; set; }
+
+        public string profession{ get; set; }
+
+        public string annualIncome{ get; set; }
+
+        public string property { get; set; }
+
+        public string famaliybackground { get; set; }
 
         public IFormFile image { get; set; }
 

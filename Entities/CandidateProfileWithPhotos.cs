@@ -11,6 +11,7 @@
         public string district { get; set; }
         public string maskedContactNumber { get; set; }
         public string age { get; set; }
+        public byte isAccepted { get; set; }
     }
 
 }
