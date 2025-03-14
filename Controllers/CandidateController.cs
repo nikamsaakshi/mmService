@@ -5,6 +5,8 @@ using mmService.Entities;
 using System.Net;
 using System.Runtime.InteropServices;
 
+using System.Linq;
+
 namespace mmService.Controllers
 {
     [Route("api/[controller]")]
@@ -109,6 +111,91 @@ namespace mmService.Controllers
 
         [HttpPost("saveCandidateProfile")]
         public HttpStatusCode saveCandidateProfile([FromForm] CandidateProfile candidate)
+        {
+            CandidateProfile candidateProfile = new CandidateProfile();
+            if (candidate != null && candidate.candidateId > 0)
+            {
+                candidateProfile = _dbContext.CandidateProfile.Where(p => p.candidateId == candidate.candidateId).FirstOrDefault();
+            }
+
+            if (candidateProfile != null && candidate != null && candidate.candidateId > 0)
+            {
+                var result = Put(candidate.candidateId, candidate);
+                return HttpStatusCode.OK;
+            }
+            else
+            {
+                _dbContext.Add(candidate);
+                var result = _dbContext.SaveChanges();
+
+                if (result <= 0)
+                {
+                    return HttpStatusCode.BadRequest;
+                }
+
+                if (candidate.image == null && candidate.doc == null && result > 0)
+                {
+                    return HttpStatusCode.Created;
+                }
+
+                if (candidate.image != null)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "images");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var image = candidate.image;
+                    var uniqueFileName = Guid.NewGuid().ToString() + Path.GetExtension(image.FileName);
+                    var filePath = Path.Combine(uploadsFolder, uniqueFileName);
+
+                    using (var stream = new FileStream(filePath, FileMode.Create))
+                    {
+                        image.CopyToAsync(stream);
+                    }
+
+                    CandidatePhotos candidatePhoto = new CandidatePhotos();
+                    candidatePhoto.photoPath = filePath;
+                    candidatePhoto.candidateId = candidate.candidateId;
+                    candidatePhoto.uploadedAt = DateTime.Now;
+
+                    _dbContext.CandidatePhotos.Add(candidatePhoto);
+                    _dbContext.SaveChanges();
+                }
+
+                if (candidate.doc != null)
+                {
+                    var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "docs");
+                    if (!Directory.Exists(uploadsFolder))
+                    {
+                        Directory.CreateDirectory(uploadsFolder);
+                    }
+
+                    var doc = candidate.doc;
+                    var uniqueFileNameDoc = Guid.NewGuid().ToString() + Path.GetExtension(doc.FileName);
+                    var filePathDoc = Path.Combine(uploadsFolder, uniqueFileNameDoc);
+
+                    using (var stream = new FileStream(filePathDoc, FileMode.Create))
+                    {
+                        doc.CopyToAsync(stream);
+                    }
+
+                    CandidatePhotos candidatePhotoDoc = new CandidatePhotos();
+                    candidatePhotoDoc.photoPath = filePathDoc;
+                    candidatePhotoDoc.candidateId = candidate.candidateId;
+                    candidatePhotoDoc.uploadedAt = DateTime.Now;
+
+                    _dbContext.CandidatePhotos.Add(candidatePhotoDoc);
+                    _dbContext.SaveChanges();
+                }
+                return HttpStatusCode.Created;
+            }
+        }
+
+
+        [HttpPost("saveMarriedCandidates")]
+        public HttpStatusCode saveMarriedCandidates([FromForm] CandidateProfile candidate)
         {
             CandidateProfile candidateProfile = new CandidateProfile();
             if (candidate != null && candidate.candidateId > 0)
@@ -476,6 +563,95 @@ namespace mmService.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+
+        [HttpGet("getMarriedCouples")]
+        public ActionResult getMarriedCouples()
+        {
+
+            var marriedCandidatesWithPhotos = _dbContext.MarriedCandidate
+    .Join(_dbContext.CandidatePhotos,
+          mc => mc.candidate1,
+          cp1 => cp1.candidateId,
+          (mc, cp1) => new { mc, cp1 })
+    .Join(_dbContext.CandidateProfile,
+          temp => temp.cp1.candidateId,
+          c1 => c1.candidateId,
+          (temp, c1) => new { temp.mc, temp.cp1, c1 })
+    .Join(_dbContext.CandidatePhotos,
+          temp => temp.mc.candidate2,
+          cp2 => cp2.candidateId,
+          (temp, cp2) => new { temp.mc, temp.cp1, temp.c1, cp2 })
+    .Join(_dbContext.CandidateProfile,
+          temp => temp.cp2.candidateId,
+          c2 => c2.candidateId,
+          (temp, c2) => new
+          {
+              MarriedDate = temp.mc.marriedDate,
+              Couple = new
+              {
+                  Ids = $"{temp.cp1.candidateId}, {temp.cp2.candidateId}", // Merging candidate IDs
+                  Names = $"{temp.c1.firstName} {temp.c1.middleName} {temp.c1.lastName} & {c2.firstName} {c2.middleName} {c2.lastName}",
+                  Photos = new List<string> { temp.cp1.photoPath, temp.cp2.photoPath } // List of Photos
+              }
+          }).Distinct()
+    .ToList();
+
+            //        var marriedCandidatesWithPhotos = _dbContext.MarriedCandidate
+            //.Join(_dbContext.CandidatePhotos,
+            //      mc => mc.candidate1,
+            //      cp1 => cp1.candidateId,
+            //      (mc, cp1) => new { mc, cp1 })
+            //.Join(_dbContext.CandidatePhotos,
+            //      temp => temp.mc.candidate2,
+            //      cp2 => cp2.candidateId,
+            //      (temp, cp2) => new
+            //      {
+            //          MarriedDate = temp.mc.marriedDate,
+            //          Candidate1 = new { Id = temp.cp1.candidateId, Name = "AAA" + " " + "bbbb", Photo = temp.cp1.photoPath },
+            //          Candidate2 = new { Id = cp2.candidateId, Name = "ccc" + " " + "dd", Photo = cp2.photoPath }
+            //      })
+            //.ToList();
+
+
+
+            //var marriedCandidatesWithPhotos =
+            //(from mc in _dbContext.MarriedCandidate
+            // join cp1 in _dbContext.CandidatePhotos on mc.candidate1 equals cp1.candidateId
+            // join cp2 in _dbContext.CandidatePhotos on mc.candidate2 equals cp2.candidateId
+            // join c1 in _dbContext.CandidateProfile on cp1.candidateId equals c1.candidateId
+            // join c2 in _dbContext.CandidateProfile on cp2.candidateId equals c2.candidateId
+            // select new
+            // {
+            //     MarriedDate = mc.marriedDate,
+            //     Candidate1 = new
+            //     {
+            //         Id = cp1.candidateId,
+            //         Name = c1.firstName + " " + (c1.middleName != null ? c1.middleName + " " : "") + c1.lastName,
+            //         Photo = cp1.photoPath
+            //     },
+            //     Candidate2 = new
+            //     {
+            //         Id = cp2.candidateId,
+            //         Name = c2.firstName + " " + (c2.middleName != null ? c2.middleName + " " : "") + c2.lastName,
+            //         Photo = cp2.photoPath
+            //     }
+            // }).ToList();
+            //return Ok(marriedCandidatesWithPhotos);
+            var result = from mc in _dbContext.MarriedCandidate
+                         join
+                         cp in _dbContext.CandidatePhotos on mc.candidate2 equals cp.candidateId
+                         join cpr in _dbContext.CandidateProfile on cp.candidateId equals cpr.candidateId
+                         select new
+                         {
+                             c1Fname = cpr.firstName,
+                             c1FirstName = cpr.lastName,
+                             c1photoPath = cp.photoPath,
+
+                         };
+            //return result;
+            return Ok(marriedCandidatesWithPhotos);
         }
         #endregion
     }

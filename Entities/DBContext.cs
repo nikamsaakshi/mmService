@@ -21,7 +21,8 @@ namespace mmService.Entities
         public virtual DbSet<Candidate> Candidate { get; set; }
         public virtual DbSet<CandidatePhotos> CandidatePhotos { get; set; }
 
-        public virtual DbSet<CandidateInterest> CandidateInterest { get; set; } 
+        public virtual DbSet<CandidateInterest> CandidateInterest { get; set; }
+        public virtual DbSet<MarriedCandidate> MarriedCandidate { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -244,6 +245,25 @@ namespace mmService.Entities
                   .IsUnicode(false);
 
 
+            });
+
+            modelBuilder.Entity<MarriedCandidate>(entity =>
+            {
+                entity.ToTable("marriedcandidate").HasKey("id");
+
+                entity.Property(e => e.id);
+
+                entity.Property(e => e.candidate1)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.candidate2)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.marriedDate)
+                    .IsRequired()
+                    .IsUnicode(false);
             });
 
             //ADK
