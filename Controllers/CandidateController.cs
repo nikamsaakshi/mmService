@@ -29,20 +29,28 @@ namespace mmService.Controllers
                 return BadRequest(new { message = "Email and Password are required" });
             }
 
-            var candidate = _dbContext.Candidate
-                .FirstOrDefault(c => c.emailId == request.email);
+            var candidate = _dbContext.Candidate.Where(p => p.emailId == request.email).SingleOrDefault();
 
             if (candidate == null)
             {
-                return Unauthorized(new { message = "Invalid email or password" });
+                return Unauthorized(new { message = "Invalid email or password!" });
             }
+
+            var candidateProfile = _dbContext.CandidateProfile.Where(p => p.candidateId == candidate.id).SingleOrDefault();
 
             if (candidate.password != request.password)
             {
-                return Unauthorized(new { message = "Invalid email or password" });
+                return Unauthorized(new { message = "Invalid email or password!" });
             }
 
-            return Ok(new { token = "loggedin", email = candidate.emailId, candidateId = candidate.id, isPremium = candidate.isPremium });
+            return Ok(new
+            {
+                token = "loggedin",
+                email = candidate.emailId,
+                candidateId = candidate.id,
+                isPremium = candidate.isPremium,
+                gender = candidateProfile?.gender
+            });
         }
 
         #endregion
@@ -74,6 +82,23 @@ namespace mmService.Controllers
             return Ok("Candidate premium activated successfully!");
         }
 
+        [HttpPut("updateCandidateInterest")]
+        public CandidateInterest updateCandidateInterest([FromBody] CandidateInterest candidateInterest)
+        {
+            var presentCandidateInterest = _dbContext?.CandidateInterest.Where(p => p.candidateId == candidateInterest.candidateId && p.interestedCandidateId == candidateInterest.interestedCandidateId).SingleOrDefault();
+
+            if (presentCandidateInterest == null) return null;
+
+            presentCandidateInterest.isAccepted = candidateInterest.isAccepted;
+            presentCandidateInterest.isRejected = candidateInterest.isRejected;
+            var result = _dbContext?.SaveChanges();
+            if (result > 0)
+            {
+                return presentCandidateInterest;
+            }
+            return null;
+        }
+
         #endregion
 
         #region Candidate Profile
@@ -89,23 +114,19 @@ namespace mmService.Controllers
         public CandidateProfile getCandidateProfileByCandidateId(int candidateId)
         {
             var candidate = _dbContext?.CandidateProfile.Where(p => p.candidateId == candidateId).SingleOrDefault();
-
-
-            //new CandidateProfileWithPhotos
-            //{
-            //    candidateId = item.CandidateProfile.candidateId,
-            //    firstName = item.CandidateProfile.firstName.Substring(0, 2) + "####",
-            //    lastName = item.CandidateProfile.lastName.Substring(0, 2) + "####",
-            //    photoPath = filePath + newFileName,
-            //    dob = item.CandidateProfile.DOB.ToLongDateString(),
-            //    villageOrCity = item.CandidateProfile.villageOrCity.Substring(0, 2) + "####",
-            //    district = item.CandidateProfile.district.Substring(0, 2) + "####",
-            //    maskedContactNumber = "#######" + (new Random()).Next(100, 1000).ToString(),
-            //    age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString()
-            //});
-
+            var photo = _dbContext?.CandidatePhotos.Where(p => p.candidateId == candidateId).FirstOrDefault();
             if (candidate != null)
+            {
+                if (photo != null)
+                {
+                    var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                    var filePath = $"{baseUrl}/images/";
+                    var newFileName = Path.GetFileName(photo.photoPath);
+                    candidate.photoPath = filePath + newFileName;
+                }
+
                 return candidate;
+            }
             return new CandidateProfile();
         }
 
@@ -382,7 +403,7 @@ namespace mmService.Controllers
             try
             {
                 var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.candidateId == candidateId).Select(p => p.interestedCandidateId).ToList();
-                //var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.candidateId == candidateId).Select(p => p.candidateId).ToList();
+                //var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.interestedCandidateId == candidateId).Select(p => p.candidateId).ToList();
 
                 var matchingProfiles = _dbContext.CandidateProfile
                .Where(p => lstInterestSentCandidates.Contains(p.candidateId))
@@ -405,7 +426,6 @@ namespace mmService.Controllers
                 foreach (var item in matchingProfiles)
                 {
                     var newFileName = Path.GetFileName(item.CandidatePhoto.photoPath);
-                    //var data = lstIntCandidatesByIntCandidateIds?.FirstOrDefault(p => p.interestedCandidateId == item.CandidateProfile.candidateId);
                     var data = _dbContext?.CandidateInterest.Where(p => p.interestedCandidateId == item.CandidateProfile.candidateId && p.candidateId == candidateId).FirstOrDefault();
                     lstResult.Add(
                     new CandidateProfileWithPhotos
@@ -421,6 +441,65 @@ namespace mmService.Controllers
                         age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString(),
                         isAccepted = (byte)(data != null ? data.isAccepted : 0)
                         //isAccepted = (byte)(lstIntCandidatesByIntCandidateIds?.FirstOrDefault(p => p.interestedCandidateId == item.CandidateProfile.candidateId)?.isAccepted ?? 0)
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+
+                throw;
+            }
+
+            return lstResult;
+        }
+
+        [HttpGet("getReceivedInterestMatchingProfilesByCandidateId/{candidateId}")]
+        public IEnumerable<CandidateProfileWithPhotos> getReceivedInterestMatchingProfilesByCandidateId(int candidateId)
+        {
+            List<CandidateProfileWithPhotos> lstResult = new List<CandidateProfileWithPhotos>();
+
+            try
+            {
+                var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.interestedCandidateId == candidateId).Select(p => p.candidateId).ToList();
+                //var lstInterestSentCandidates = _dbContext.CandidateInterest.Where(p => p.candidateId == candidateId).Select(p => p.interestedCandidateId).ToList();
+
+                var matchingProfiles = _dbContext.CandidateProfile
+               .Where(p => lstInterestSentCandidates.Contains(p.candidateId))
+               .GroupJoin(
+                   _dbContext.CandidatePhotos,
+                   p => p.candidateId,
+                   cp => cp.candidateId,
+                   (p, photos) => new
+                   {
+                       CandidateProfile = p,
+                       CandidatePhoto = photos.OrderBy(x => x.uploadedAt).FirstOrDefault()
+                   }
+                ).ToList();
+
+                var lstIntCandidatesByIntCandidateIds = _dbContext.CandidateInterest.Where(p => lstInterestSentCandidates.Contains(p.candidateId)).ToList();
+
+                var baseUrl = $"{Request.Scheme}://{Request.Host}";
+                var filePath = $"{baseUrl}/images/";
+
+                foreach (var item in matchingProfiles)
+                {
+                    var newFileName = Path.GetFileName(item.CandidatePhoto.photoPath);
+                    var data = _dbContext?.CandidateInterest.Where(p => p.interestedCandidateId == item.CandidateProfile.candidateId && p.candidateId == candidateId).FirstOrDefault();
+                    lstResult.Add(
+                    new CandidateProfileWithPhotos
+                    {
+                        candidateId = item.CandidateProfile.candidateId,
+                        firstName = item.CandidateProfile.firstName.Substring(0, 2) + "####",
+                        lastName = item.CandidateProfile.lastName.Substring(0, 2) + "####",
+                        photoPath = filePath + newFileName,
+                        dob = item.CandidateProfile.DOB.ToLongDateString(),
+                        villageOrCity = item.CandidateProfile.villageOrCity.Substring(0, 2) + "####",
+                        district = item.CandidateProfile.district.Substring(0, 2) + "####",
+                        maskedContactNumber = "#######" + (new Random()).Next(100, 1000).ToString(),
+                        age = (DateTime.Today.Year - item.CandidateProfile.DOB.Year).ToString(),
+                        isAccepted = (byte)(data != null ? data.isAccepted : 0),
+                        isRejected = (byte)(data != null ? data.isRejected : 0),
+                        interestedCandidateId = data != null ? data.interestedCandidateId : 0
                     });
                 }
             }
@@ -497,7 +576,7 @@ namespace mmService.Controllers
             existingCandidate.height = updatedCandidate.height;
             existingCandidate.weight = updatedCandidate.weight;
             existingCandidate.complexion = !string.IsNullOrWhiteSpace(updatedCandidate.complexion) ? updatedCandidate.complexion : existingCandidate.complexion;
-            existingCandidate.bloodGRoup = !string.IsNullOrWhiteSpace(updatedCandidate.bloodGRoup) ? updatedCandidate.bloodGRoup : existingCandidate.bloodGRoup;
+            existingCandidate.bloodGroup = !string.IsNullOrWhiteSpace(updatedCandidate.bloodGroup) ? updatedCandidate.bloodGroup : existingCandidate.bloodGroup;
             existingCandidate.education = !string.IsNullOrWhiteSpace(updatedCandidate.education) ? updatedCandidate.education : existingCandidate.education;
             existingCandidate.profession = !string.IsNullOrWhiteSpace(updatedCandidate.profession) ? updatedCandidate.profession : existingCandidate.profession;
             existingCandidate.annualIncome = !string.IsNullOrWhiteSpace(updatedCandidate.annualIncome) ? updatedCandidate.annualIncome : existingCandidate.annualIncome;

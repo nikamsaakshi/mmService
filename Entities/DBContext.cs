@@ -217,7 +217,7 @@ namespace mmService.Entities
 
                    .IsUnicode(false);
 
-                entity.Property(e => e.bloodGRoup)
+                entity.Property(e => e.bloodGroup)
                    .IsUnicode(false);
 
                 entity.Property(e => e.education)
@@ -269,7 +269,7 @@ namespace mmService.Entities
             //ADK
             modelBuilder.Entity<CandidateProfile>().Ignore(p => p.doc);
             modelBuilder.Entity<CandidateProfile>().Ignore(p => p.image);
-
+            modelBuilder.Entity<CandidateProfile>().Ignore(p => p.photoPath);
             OnModelCreatingPartial(modelBuilder);
         }
 

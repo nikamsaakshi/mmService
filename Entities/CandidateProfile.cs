@@ -61,7 +61,7 @@ namespace mmService.Entities
 
         public string? complexion { get; set; }
 
-        public string? bloodGRoup { get; set; }
+        public string? bloodGroup { get; set; }
 
         public string? education { get; set; }
 
@@ -76,6 +76,7 @@ namespace mmService.Entities
         public IFormFile? image { get; set; }
 
         public IFormFile? doc { get; set; }
+        public string? photoPath { get; set; }
     }
 
 
