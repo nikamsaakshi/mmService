@@ -43,17 +43,17 @@ namespace mmService.Entities
 
         public string subCast { get; set; }
 
-        public string? familyDeity { get; set; }
+        public string? familyDeity { get; set; } = string.Empty;
 
-        public string? deityRepresentation { get; set; }
+        public string? deityRepresentation { get; set; } = string.Empty;
 
-        public string? constellation { get; set; }
+        public string? constellation { get; set; } = string.Empty;
 
-        public string? zodiacSign { get; set; }
+        public string? zodiacSign { get; set; } = string.Empty;
 
-        public string? category { get; set; }
+        public string? category { get; set; } = string.Empty;
 
-        public string? pulse { get; set; }
+        public string? pulse { get; set; } = string.Empty;
 
         public decimal height { get; set; }
 
@@ -67,11 +67,11 @@ namespace mmService.Entities
 
         public string? profession { get; set; }
 
-        public string? annualIncome { get; set; }
+        public string? annualIncome { get; set; } = string.Empty;
 
-        public string? property { get; set; }
+        public string? property { get; set; } = string.Empty;
 
-        public string? familyBackground { get; set; }
+        public string? familyBackground { get; set; } = string.Empty;
 
         public IFormFile? image { get; set; }
 

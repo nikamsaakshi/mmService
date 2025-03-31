@@ -1,8 +1,4 @@
-﻿using System;
-using System.Xml.Linq;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Metadata;
-using mmService.Controllers;
+﻿using Microsoft.EntityFrameworkCore;
 
 namespace mmService.Entities
 {
@@ -20,9 +16,11 @@ namespace mmService.Entities
         public virtual DbSet<CandidateProfile> CandidateProfile { get; set; }
         public virtual DbSet<Candidate> Candidate { get; set; }
         public virtual DbSet<CandidatePhotos> CandidatePhotos { get; set; }
-
         public virtual DbSet<CandidateInterest> CandidateInterest { get; set; }
         public virtual DbSet<MarriedCandidate> MarriedCandidate { get; set; }
+        public virtual DbSet<CandidateChat> CandidateChat { get; set; }
+        public virtual DbSet<CandidateChatMedia> CandidateChatMedia { get; set; }
+        public virtual DbSet<CandidateChatconversation> CandidateChatconversation { get; set; }
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
@@ -221,7 +219,7 @@ namespace mmService.Entities
                    .IsUnicode(false);
 
                 entity.Property(e => e.education)
-                   
+
                    .IsUnicode(false);
 
                 entity.Property(e => e.profession)
@@ -229,21 +227,17 @@ namespace mmService.Entities
                  .IsUnicode(false);
 
                 entity.Property(e => e.annualIncome)
-               
+
                    .HasMaxLength(50)
                    .IsUnicode(false);
 
                 entity.Property(e => e.property)
-              
+
                   .HasMaxLength(50)
                   .IsUnicode(false);
 
-
                 entity.Property(e => e.familyBackground)
-
-                 
                   .IsUnicode(false);
-
 
             });
 
@@ -266,13 +260,96 @@ namespace mmService.Entities
                     .IsUnicode(false);
             });
 
-            //ADK
+
+            modelBuilder.Entity<CandidateChat>(entity =>
+            {
+                entity.ToTable("CandidateChat").HasKey("chatId");
+
+                entity.Property(e => e.chatId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.senderId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.reciverId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.message)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                //entity.Property(e => e.messageType)
+                //    .IsRequired()
+                //    .IsUnicode(false);
+
+                //entity.Property(e => e.sentAt)
+                //    .IsRequired()
+                //    .IsUnicode(false);
+
+                entity.Property(e => e.isRead)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+            });
+
+            modelBuilder.Entity<CandidateChatMedia>(static entity =>
+            {
+                entity.ToTable("CandidateChatMedia").HasKey("madiaId");
+
+                entity.Property(e => e.madiaId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.chatId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.filePath)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(static e => e.fileType)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.uploadedAt)
+                    .IsRequired()
+                    .IsUnicode(false);
+            });
+
+
+            modelBuilder.Entity<CandidateChatconversation>(static entity =>
+            {
+                entity.ToTable("CandidateChatconversation").HasKey("conversationId");
+
+                entity.Property(e => e.conversationId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.candidate1Id)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.candidate2Id)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(static e => e.lastMessageId)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.lastUpdated)
+                    .IsRequired()
+                    .IsUnicode(false);
+            });
             modelBuilder.Entity<CandidateProfile>().Ignore(p => p.doc);
             modelBuilder.Entity<CandidateProfile>().Ignore(p => p.image);
             modelBuilder.Entity<CandidateProfile>().Ignore(p => p.photoPath);
             OnModelCreatingPartial(modelBuilder);
         }
-
 
         partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
     }

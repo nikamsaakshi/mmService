@@ -14,6 +14,11 @@ namespace mmService.Controllers
     public class CandidateController : ControllerBase
     {
         private DBContext _dbContext;
+        private object candidate;
+        private object message;
+        private readonly string senderId;
+        private readonly string reciverId;
+
         public CandidateController(DBContext dBContext)
         {
             _dbContext = dBContext;
@@ -49,7 +54,9 @@ namespace mmService.Controllers
                 email = candidate.emailId,
                 candidateId = candidate.id,
                 isPremium = candidate.isPremium,
-                gender = candidateProfile?.gender
+                gender = candidateProfile?.gender,
+                cast= candidateProfile?.cast
+
             });
         }
 
@@ -342,8 +349,8 @@ namespace mmService.Controllers
             return lstCandidates.ToList();
         }
 
-        [HttpGet("getMatchingProfilesByGender/{gender}")]
-        public IEnumerable<CandidateProfileWithPhotos> getMatchingProfilesByGender(string gender)
+        [HttpGet("getMatchingProfilesByGender/{gender}/{cast}")]
+        public IEnumerable<CandidateProfileWithPhotos> getMatchingProfilesByGender(string gender,string cast)
         {
             List<CandidateProfileWithPhotos> lstResult = new List<CandidateProfileWithPhotos>();
 
@@ -352,7 +359,7 @@ namespace mmService.Controllers
             try
             {
                 var matchingProfiles = _dbContext.CandidateProfile
-           .Where(p => p.gender.ToLower() == gender.ToLower())
+           .Where(p => p.gender.ToLower() == gender.ToLower() && p.cast.ToLower() == cast.ToLower())
            .GroupJoin(
                _dbContext.CandidatePhotos,
                p => p.candidateId,
@@ -618,6 +625,20 @@ namespace mmService.Controllers
             {
                 return StatusCode(500, $"Internal server error: {ex.Message}");
             }
+        }
+
+
+        [HttpPost("sendMessage/{chatId}")]
+        public ActionResult sendMessage(int chatId, [FromBody] CandidateChat candidateChat)
+        {
+            CandidateChat candidateChat1 = new CandidateChat();
+            candidateChat1.message = candidateChat.message;
+            //candidateChat1.messageType = MessageType.Text;
+            candidateChat1.message = senderId;
+            candidateChat1.message = reciverId;
+            _dbContext.Add(candidateChat1);
+            var result = _dbContext.SaveChanges();
+            return Ok(new { message = message });
         }
 
         // DELETE api/<CandidateController>/5
