@@ -16,8 +16,11 @@ namespace mmService.Controllers
         private DBContext _dbContext;
         private object candidate;
         private object message;
+        private object _context;
         private readonly string senderId;
         private readonly string reciverId;
+
+        public object admin { get; private set; }
 
         public CandidateController(DBContext dBContext)
         {
@@ -56,6 +59,33 @@ namespace mmService.Controllers
                 isPremium = candidate.isPremium,
                 gender = candidateProfile?.gender,
                 cast= candidateProfile?.cast
+
+            });
+        }
+
+        [HttpPost("admin")]
+
+        public async Task<IActionResult> Login([FromBody] admin loginDto)
+        {
+            if (string.IsNullOrWhiteSpace(loginDto.Email) || string.IsNullOrWhiteSpace(loginDto.Password))
+            {
+                return BadRequest(new { message = "Email and password are required." });
+            }
+
+            var admin = await _context.admin
+                .FirstOrDefaultAsync(a => a.Email == loginDto.Email && a.Password == loginDto.Password);
+
+            if (admin == null)
+            {
+                return Unauthorized(new { message = "Invalid credentials." });
+            }
+
+            return Ok(new
+            {
+               message= "login Successful" ,           
+               admin.Email
+                
+                
 
             });
         }
@@ -740,8 +770,7 @@ namespace mmService.Controllers
             // }).ToList();
             //return Ok(marriedCandidatesWithPhotos);
             var result = from mc in _dbContext.MarriedCandidate
-                         join
-                         cp in _dbContext.CandidatePhotos on mc.candidate2 equals cp.candidateId
+                         join cp in _dbContext.CandidatePhotos on mc.candidate2 equals cp.candidateId
                          join cpr in _dbContext.CandidateProfile on cp.candidateId equals cpr.candidateId
                          select new
                          {
@@ -751,7 +780,7 @@ namespace mmService.Controllers
 
                          };
             //return result;
-            return Ok(marriedCandidatesWithPhotos);
+            return Ok(result);
         }
         #endregion
     }

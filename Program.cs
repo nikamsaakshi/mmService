@@ -35,8 +35,8 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
-app.UseAuthorization();
-
+//app.UseAuthorization();
+app.UseRouting();
 app.MapControllers();
 app.UseStaticFiles();
 

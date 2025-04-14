@@ -4,6 +4,8 @@ namespace mmService.Entities
 {
     public partial class DBContext : DbContext
     {
+        internal IEnumerable<object> admin;
+
         public DBContext()
         {
         }
@@ -14,6 +16,7 @@ namespace mmService.Entities
         }
 
         public virtual DbSet<CandidateProfile> CandidateProfile { get; set; }
+        public virtual DbSet<Adminlogin> Adminlogin { get; set; }
         public virtual DbSet<Candidate> Candidate { get; set; }
         public virtual DbSet<CandidatePhotos> CandidatePhotos { get; set; }
         public virtual DbSet<CandidateInterest> CandidateInterest { get; set; }
@@ -47,7 +50,21 @@ namespace mmService.Entities
                     entity.Property(e => e.isRejected)
                         .IsUnicode(false);
                 });
+            modelBuilder.Entity<Admin>(entity =>
+            {
+                entity.ToTable("Admin").HasKey("id");
 
+                entity.Property(e => e.id);
+
+                entity.Property(e => e.Email)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+                entity.Property(e => e.password)
+                    .IsRequired()
+                    .IsUnicode(false);
+
+            });
             modelBuilder.Entity<CandidatePhotos>(entity =>
             {
                 entity.ToTable("candidatephotos").HasKey("id");
